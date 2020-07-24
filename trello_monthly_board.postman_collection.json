@@ -1,0 +1,472 @@
+{
+	"info": {
+		"_postman_id": "6d6605f6-5597-4731-9f91-bbcb91ac0331",
+		"name": "trello_monthly_board",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "get my boards and create task list variable",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "375e94f5-aaac-4038-8613-ad9a47ad5df9",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Task List variable should be created\", function () {",
+							"    let taskslist = pm.environment.get(\"tasksList\");",
+							"    pm.expect(taskslist).to.not.eql('');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "9d1a0fe0-9b60-4bd2-96ec-63031da0b95d",
+						"exec": [
+							"// Enter your tasks here:",
+							"// Restriction: You must provide at least one task each day.",
+							"let mondayTasks = [\"monday task 1\"];",
+							"let tuesdayTasks = [\"tuesday taks 2\", \"tuesday task 3\", \"tuesday task 4\"];",
+							"let wednesdayTasks = [\"wednesday task 5\", \"wednesday task 6\"];",
+							"let thursdayTasks = [\"thursday task 7\", \"thursday task 8\"];",
+							"let fridayTasks = [\"friday task 9\", \"friday task 10\"];",
+							"let saturdayTasks = [\"saturday task 11\", \"saturday task 12\"];",
+							"let sundayTasks = [\"sunday task 13\"];",
+							"",
+							"",
+							"// global task list",
+							"let taskslist = [sundayTasks, mondayTasks, tuesdayTasks, wednesdayTasks, thursdayTasks, fridayTasks, saturdayTasks]",
+							"pm.environment.set(\"tasksList\", taskslist);",
+							"console.log(`tasks list: ${pm.environment.get(\"tasksList\")}`);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://api.trello.com/1/members/me/boards?fields=name,url&key={{api-key}}&token={{token}}",
+					"protocol": "https",
+					"host": [
+						"api",
+						"trello",
+						"com"
+					],
+					"path": [
+						"1",
+						"members",
+						"me",
+						"boards"
+					],
+					"query": [
+						{
+							"key": "fields",
+							"value": "name,url"
+						},
+						{
+							"key": "key",
+							"value": "{{api-key}}"
+						},
+						{
+							"key": "token",
+							"value": "{{token}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create a monthly board",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4416fd05-78fb-4447-b0b0-dc92addaa435",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const response = pm.response.json();",
+							"",
+							"pm.test(\"Board is created\", function () {",
+							"    pm.expect(response.name).to.eql(pm.environment.get(\"boardName\"));",
+							"    pm.expect(response.closed).to.eql(false);",
+							"});",
+							"",
+							"pm.test(\"Board is private\", function () {",
+							"    pm.expect(response.prefs.permissionLevel).to.eql(\"private\");",
+							"});",
+							"",
+							"pm.environment.set(\"idBoard\", response.id);",
+							"",
+							"const year = pm.environment.get(\"year\");",
+							"let monthNumber = pm.environment.get(\"monthNumber\");",
+							"let daysInMonth = calculateDaysInMonth(monthNumber, year)",
+							"pm.environment.set(\"daysInMonth\", daysInMonth);",
+							"console.log(daysInMonth)",
+							"",
+							"function calculateDaysInMonth(month, year) {",
+							"    return new Date(year, month, 0).getDate();",
+							"}",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "5f034d28-83db-4175-a441-48c099734806",
+						"exec": [
+							"const locales = pm.environment.get(\"locales\");",
+							"const formatter = new Intl.DateTimeFormat(locales, { month: 'long' });",
+							"",
+							"let monthNumber = pm.environment.get(\"monthNumber\");",
+							"",
+							"if (monthNumber>12 || monthNumber<1){",
+							"    monthNumber = 1;",
+							"    pm.environment.set(\"monthNumber\", monthNumber);",
+							"    console.log(\"Month value out of scope. Value assumed for January.\")",
+							"}",
+							"",
+							"const year = pm.environment.get(\"year\");",
+							"const month = monthNumber-1;",
+							"const day = 1;",
+							"",
+							"let date = new Date(year, month, day);",
+							"let monthName = formatter.format(date);",
+							"",
+							"pm.environment.set(\"boardName\", monthName);",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "https://api.trello.com/1/boards?name={{boardName}}&defaultLists=false&key={{api-key}}&token={{token}}",
+					"protocol": "https",
+					"host": [
+						"api",
+						"trello",
+						"com"
+					],
+					"path": [
+						"1",
+						"boards"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "{{boardName}}"
+						},
+						{
+							"key": "defaultLists",
+							"value": "false"
+						},
+						{
+							"key": "key",
+							"value": "{{api-key}}"
+						},
+						{
+							"key": "token",
+							"value": "{{token}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create a day list",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a86d8f71-a331-475a-9f88-75ceb6e5f496",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"const response = pm.response.json();",
+							"",
+							"pm.test(\"List should be created\", function () {",
+							"    pm.expect(response.name).to.eql(pm.environment.get(\"listTitle\"));",
+							"    pm.expect(response.closed).to.eql(false);",
+							"    pm.environment.set(\"currentListId\", response.id);",
+							"});",
+							"",
+							"pm.test(\"Current day should be in title\", function () {",
+							"    pm.expect(response.name).to.include(pm.environment.get(\"currentDay\"));",
+							"});",
+							"",
+							"pm.environment.set(\"currentDay\", parseInt(pm.environment.get(\"currentDay\")) + 1);",
+							"console.log(`current day ${pm.environment.get(\"currentDay\")}`)",
+							"",
+							"// set next request",
+							"if (parseInt(pm.environment.get(\"currentDay\"))> parseInt(pm.environment.get(\"daysInMonth\")) ){",
+							"    pm.environment.set(\"lastDay\", 'true');  ",
+							"}",
+							"postman.setNextRequest(\"create a card\");",
+							"",
+							"",
+							""
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "ebdc73ca-db98-435c-bfec-79e2de262d37",
+						"exec": [
+							"const locales = pm.environment.get(\"locales\");",
+							"",
+							"// Card name structure. If you want a different structure, you can change it here.",
+							"const formatter = new Intl.DateTimeFormat(locales, { weekday: 'long', day: 'numeric', month: 'long'});",
+							"",
+							"let monthNumber = pm.environment.get(\"monthNumber\");",
+							"",
+							"const year = pm.environment.get(\"year\");",
+							"const month = monthNumber-1;",
+							"const day = pm.environment.get(\"currentDay\");",
+							"",
+							"let date = new Date(year, month, day);",
+							"",
+							"pm.environment.set(\"listTitle\", `${formatter.format(date)}`);",
+							"",
+							"let weekdayNumber = date.getDay()",
+							"console.log(`weekday number ${weekdayNumber}`)",
+							"pm.environment.set(\"currentWeekday\", weekdayNumber);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "https://api.trello.com/1/lists?name={{listTitle}}&key={{api-key}}&token={{token}}&idBoard={{idBoard}}&pos=bottom",
+					"protocol": "https",
+					"host": [
+						"api",
+						"trello",
+						"com"
+					],
+					"path": [
+						"1",
+						"lists"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "{{listTitle}}"
+						},
+						{
+							"key": "key",
+							"value": "{{api-key}}"
+						},
+						{
+							"key": "token",
+							"value": "{{token}}"
+						},
+						{
+							"key": "idBoard",
+							"value": "{{idBoard}}"
+						},
+						{
+							"key": "pos",
+							"value": "bottom"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create a card",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b53fe45b-c30a-48f2-9bbb-29f3a9cf02dc",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Card name should not be equal null\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response.name).to.not.eql(\"null\");",
+							"});",
+							"",
+							"// clearing variables",
+							"if (pm.environment.get(\"lastDay\")==='true'){",
+							"    pm.environment.unset(\"tasksList\");",
+							"    pm.environment.unset(\"currentWeekday\");",
+							"    pm.environment.unset(\"listTitle\");",
+							"    pm.environment.unset(\"boardName\");",
+							"    pm.environment.set(\"currentDay\", 1);",
+							"    }"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "fd4f34ba-0826-4a7a-9522-366384039bbc",
+						"exec": [
+							"// current tasks",
+							"var currentTaskList = pm.environment.get(\"currentTaskList\");",
+							"",
+							"if ( currentTaskList==\"\" || !currentTaskList){",
+							"    let weekdayNumber = parseInt(pm.environment.get(\"currentWeekday\"))",
+							"    pm.environment.set(\"currentTaskList\", pm.environment.get(\"tasksList\")[weekdayNumber]);",
+							"    console.log(`current weekday tasks list: ${pm.environment.get(\"currentTaskList\")}`);",
+							"}",
+							"currentTaskList = pm.environment.get(\"currentTaskList\");",
+							"",
+							"let currentTask = currentTaskList.shift()",
+							"if (!currentTask){",
+							"        currentTask = \"Have a nice day!\";",
+							"    }",
+							"pm.environment.set(\"currentTask\", currentTask);",
+							"pm.environment.set(\"currentTaskList\", currentTaskList);",
+							"console.log(`current weekday tasks list: ${pm.environment.get(\"currentTaskList\")}`)",
+							"",
+							"",
+							"// set next request",
+							"if ( currentTaskList==\"\" || !currentTaskList){",
+							"    if (pm.environment.get(\"lastDay\")=='true'){",
+							"        postman.setNextRequest(null);",
+							"        console.log(\"Last request\");",
+							"        pm.environment.set(\"lastDay\", 'false');",
+							"    } else {",
+							"        postman.setNextRequest(\"create a day list\");",
+							"    }",
+							"",
+							"} else {",
+							"    postman.setNextRequest(\"create a card\");",
+							"}",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "https://api.trello.com/1/cards?key={{api-key}}&token={{token}}&name={{currentTask}}&idList={{currentListId}}",
+					"protocol": "https",
+					"host": [
+						"api",
+						"trello",
+						"com"
+					],
+					"path": [
+						"1",
+						"cards"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{api-key}}"
+						},
+						{
+							"key": "token",
+							"value": "{{token}}"
+						},
+						{
+							"key": "name",
+							"value": "{{currentTask}}"
+						},
+						{
+							"key": "idList",
+							"value": "{{currentListId}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete a board",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "9d1bb3e1-a51c-462a-9972-04240454d13f",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Your test name\", function () {",
+							"    const response = pm.response.json();",
+							"    pm.expect(response._value).to.eql(null);",
+							"});",
+							"",
+							"pm.environment.unset(\"idBoard\");",
+							"pm.environment.unset(\"boardName\");"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "https://api.trello.com/1/boards/:id?key={{api-key}}&token={{token}}",
+					"protocol": "https",
+					"host": [
+						"api",
+						"trello",
+						"com"
+					],
+					"path": [
+						"1",
+						"boards",
+						":id"
+					],
+					"query": [
+						{
+							"key": "key",
+							"value": "{{api-key}}"
+						},
+						{
+							"key": "token",
+							"value": "{{token}}"
+						}
+					],
+					"variable": [
+						{
+							"key": "id",
+							"value": "{{idBoard}}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
